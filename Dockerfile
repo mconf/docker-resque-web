@@ -1,4 +1,4 @@
-FROM ruby:2.4
+FROM ruby:2.4.4
 
 LABEL maintainer="Alexandre Buisine <alexandrejabuisine@gmail.com>"
 LABEL version="2.4.0"
@@ -12,15 +12,13 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get -qq update \
  && apt-get -yqq clean \
  && rm -rf /var/lib/apt/lists/*
 
-RUN gem install rails --no-ri --no-rdoc \
+COPY Gemfile Gemfile.lock ./
+
+RUN bundle install \
  && cd / \
  && rails new resque-scheduler-web \
  && cd resque-scheduler-web \
- && echo "gem 'sinatra'" >> Gemfile \
- && echo "gem 'resque'" >> Gemfile \
- && echo "gem 'resque-scheduler'" >> Gemfile \
- && echo "gem 'resque-web', require: 'resque_web'" >> Gemfile \
- && echo "gem 'resque-scheduler-web'" >> Gemfile \
+ && mv /Gemfile /Gemfile.lock . \
  && bundle install
 
 WORKDIR /resque-scheduler-web
@@ -32,8 +30,7 @@ RUN sed -i "/Rails.application.routes.draw do/a   mount ResqueWeb::Engine => \"$
  && sed -i "s/config.log_level = :debug/config.log_level = :warn/" config/environments/production.rb \
  && echo "development:\n secret_key_base:\n\ntest:\n secret_key_base:\n\nproduction:\n secret_key_base: ${HOSTNAME}" > config/secrets.yml
 
-
-ENV RAILS_RESQUE_REDIS="redis:6379:0" RAILS_SERVE_STATIC_FILES="true" RAILS_LOG_TO_STDOUT="true" 
+ENV RAILS_RESQUE_REDIS="redis:6379:0" RAILS_SERVE_STATIC_FILES="true" RAILS_LOG_TO_STDOUT="true"
 # RESQUE_WEB_HTTP_BASIC_AUTH_USER="user" RESQUE_WEB_HTTP_BASIC_AUTH_PASSWORD="password"
 
 EXPOSE 80
